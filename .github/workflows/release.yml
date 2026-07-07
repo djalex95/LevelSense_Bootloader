@@ -1,12 +1,13 @@
 name: Build & Release Bootloader
 
-# Bei jedem Push auf main den Bootloader (.bin) bauen und an ein GitHub-Release
-# hängen. Version kommt aus Core/Inc/boot_dfu.h (BL_VERSION).
+# Release wird durch einen Versions-Tag ausgelöst (z. B. v1.0.0).
+# Push auf main baut KEIN Release mehr.
+# Tag muss zur BL_VERSION in Core/Inc/boot_dfu.h passen.
 # Achtung: Der Bootloader wird per ST-Link geflasht, nicht per OTA.
 
 on:
   push:
-    branches: [ main ]
+    tags: [ 'v*' ]
   workflow_dispatch:
 
 permissions:
@@ -19,12 +20,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Bootloader-Version ermitteln
+      - name: Version ermitteln
         id: ver
         run: |
           bl=$(grep -oP '^#define\s+BL_VERSION\s+"\K[^"]+' Core/Inc/boot_dfu.h | head -n1)
           echo "bl=$bl" >> "$GITHUB_OUTPUT"
           echo "Bootloader-Version: $bl"
+
+      - name: Tag == boot_dfu.h prüfen
+        if: github.ref_type == 'tag'
+        run: |
+          test "${GITHUB_REF_NAME#v}" = "${{ steps.ver.outputs.bl }}" \
+            || { echo "::error::Tag ${GITHUB_REF_NAME} passt nicht zu BL_VERSION ${{ steps.ver.outputs.bl }}"; exit 1; }
 
       - name: ARM-Toolchain installieren
         uses: carlosperate/arm-none-eabi-gcc-action@v1
@@ -34,7 +41,7 @@ jobs:
       - name: Bootloader bauen
         run: make -j4
 
-      - name: .bin + .hex mit Version benennen
+      - name: .bin + .hex benennen
         run: |
           mkdir -p dist
           cp build/bootloader.bin "dist/Bootloader_v${{ steps.ver.outputs.bl }}.bin"
@@ -46,8 +53,7 @@ jobs:
           tag_name: v${{ steps.ver.outputs.bl }}
           name: Bootloader v${{ steps.ver.outputs.bl }}
           body: |
-            Automatisch gebaut aus main.
-            Flashen per ST-Link nach 0x08000000 (nicht per OTA).
+            Automatisch gebaut. Flashen per ST-Link nach 0x08000000 (nicht per OTA).
             - Bootloader_v${{ steps.ver.outputs.bl }}.bin
             - Bootloader_v${{ steps.ver.outputs.bl }}.hex (mit Adresse)
           files: |
