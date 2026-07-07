@@ -1,0 +1,55 @@
+name: Build & Release Bootloader
+
+# Bei jedem Push auf main den Bootloader (.bin) bauen und an ein GitHub-Release
+# hängen. Version kommt aus Core/Inc/boot_dfu.h (BL_VERSION).
+# Achtung: Der Bootloader wird per ST-Link geflasht, nicht per OTA.
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Bootloader-Version ermitteln
+        id: ver
+        run: |
+          bl=$(grep -oP '^#define\s+BL_VERSION\s+"\K[^"]+' Core/Inc/boot_dfu.h | head -n1)
+          echo "bl=$bl" >> "$GITHUB_OUTPUT"
+          echo "Bootloader-Version: $bl"
+
+      - name: ARM-Toolchain installieren
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: '13.2.Rel1'
+
+      - name: Bootloader bauen
+        run: make -j4
+
+      - name: .bin + .hex mit Version benennen
+        run: |
+          mkdir -p dist
+          cp build/bootloader.bin "dist/Bootloader_v${{ steps.ver.outputs.bl }}.bin"
+          cp build/bootloader.hex "dist/Bootloader_v${{ steps.ver.outputs.bl }}.hex"
+
+      - name: Release veröffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.bl }}
+          name: Bootloader v${{ steps.ver.outputs.bl }}
+          body: |
+            Automatisch gebaut aus main.
+            Flashen per ST-Link nach 0x08000000 (nicht per OTA).
+            - Bootloader_v${{ steps.ver.outputs.bl }}.bin
+            - Bootloader_v${{ steps.ver.outputs.bl }}.hex (mit Adresse)
+          files: |
+            dist/Bootloader_v*.bin
+            dist/Bootloader_v*.hex

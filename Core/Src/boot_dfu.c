@@ -72,7 +72,12 @@ uint16_t dfu_on_data(const uint8_t *d, uint16_t len, char *resp, uint8_t *do_res
 	*do_reset = 0;
 	resp[0] = '\0';
 
-	if (len >= 4 && memcmp(d, DFU_TAG_START, 4) == 0)
+	if (len >= 3 && memcmp(d, "VER", 3) == 0)
+	{
+		/* Bootloader-Version melden (informativ, jederzeit erlaubt). */
+		snprintf(resp, 40, "BLV;%s\n", BL_VERSION);
+	}
+	else if (len >= 4 && memcmp(d, DFU_TAG_START, 4) == 0)
 	{
 		if (len < 12)
 		{

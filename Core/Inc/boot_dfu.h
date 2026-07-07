@@ -11,6 +11,10 @@
 
 #include <stdint.h>
 
+/* Bootloader-Version. Wird im Update-Modus auf das Kommando "VER" als
+ * "BLV;<version>\n" gemeldet. Bei jeder Bootloader-Freigabe erhöhen. */
+#define BL_VERSION  "1.0.0"
+
 /* Flash-Schnittstelle (auf dem Ziel per HAL, im Test per RAM-Puffer). */
 typedef struct {
 	int (*erase_app)(void);                                 /* App-Bereich löschen; 0 = ok */

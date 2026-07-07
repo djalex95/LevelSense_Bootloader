@@ -1,6 +1,9 @@
-# STM32CubeIDE Build-Artefakte
+# Build-Artefakte
 /Debug/
 /Release/
+build/
+dist/
+*.lst
 *.o
 *.d
 *.su
