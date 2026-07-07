@@ -1,0 +1,22 @@
+# STM32CubeIDE Build-Artefakte
+/Debug/
+/Release/
+*.o
+*.d
+*.su
+*.cyclo
+*.elf
+*.map
+*.list
+*.bin
+*.hex
+
+# .project, .cproject, .settings, .ioc und .launch werden bewusst
+# mitversioniert, damit das CubeIDE-Projekt direkt geöffnet werden kann.
+
+# Sicherungskopien / IDE / OS
+*.bak
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
