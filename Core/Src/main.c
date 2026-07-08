@@ -133,6 +133,22 @@ static void jump_to_app(void)
 	while (1) { }
 }
 
+/* Taster (PB8, aktiv-low) beim Start gedrückt? Dient als erzwungener DFU-Start
+ * (Recovery: auch bei gültiger, aber unbrauchbarer App lässt sich so updaten).
+ * Kurze Entprellung: nur "gedrückt", wenn mehrere Messungen hintereinander low. */
+static uint8_t button_held(void)
+{
+	for (int i = 0; i < 5; i++)
+	{
+		if (HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_8) != GPIO_PIN_RESET)
+		{
+			return 0;   /* einmal high -> nicht (stabil) gedrückt */
+		}
+		HAL_Delay(4);
+	}
+	return 1;
+}
+
 /* ---- main ---- */
 
 int main(void)
@@ -144,7 +160,10 @@ int main(void)
 	uint8_t dfu_req = (*DFU_REQ_ADDR == DFU_REQ_MAGIC);
 	*DFU_REQ_ADDR = 0;
 
-	if (!dfu_req && app_valid())
+	/* Taster beim Power-On gedrückt -> DFU erzwingen (Firmware-Recovery). */
+	uint8_t force_dfu = button_held();
+
+	if (!dfu_req && !force_dfu && app_valid())
 	{
 		jump_to_app();   /* kehrt nicht zurück */
 	}
@@ -253,6 +272,12 @@ static void MX_GPIO_Init(void)
 	gi.Mode = GPIO_MODE_INPUT;
 	gi.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(BLE_BUSY_GPIO_Port, &gi);
+
+	/* Taster (PB8) – Eingang mit Pull-up (aktiv-low), für erzwungenen DFU-Start */
+	gi.Pin = GPIO_PIN_8;
+	gi.Mode = GPIO_MODE_INPUT;
+	gi.Pull = GPIO_PULLUP;
+	HAL_GPIO_Init(GPIOB, &gi);
 
 	/* RGB-LED als einfache Ausgänge (aktiv-low): PA6 rot, PA7 grün, PB0 blau.
 	 * High = aus. Der Bootloader nutzt sie nur zum Blinken (kein PWM). */
