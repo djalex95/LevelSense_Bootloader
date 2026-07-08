@@ -52,10 +52,7 @@ jobs:
         with:
           tag_name: v${{ steps.ver.outputs.bl }}
           name: Bootloader v${{ steps.ver.outputs.bl }}
-          body: |
-            Automatisch gebaut. Flashen per ST-Link nach 0x08000000 (nicht per OTA).
-            - Bootloader_v${{ steps.ver.outputs.bl }}.bin
-            - Bootloader_v${{ steps.ver.outputs.bl }}.hex (mit Adresse)
+          body_path: RELEASE_NOTES.md
           files: |
             dist/Bootloader_v*.bin
             dist/Bootloader_v*.hex
