@@ -13,7 +13,7 @@
 
 /* Bootloader-Version. Wird im Update-Modus auf das Kommando "VER" als
  * "BLV;<version>\n" gemeldet. Bei jeder Bootloader-Freigabe erhöhen. */
-#define BL_VERSION  "1.1.0"
+#define BL_VERSION  "1.1.1-dev"
 
 /* Flash-Schnittstelle (auf dem Ziel per HAL, im Test per RAM-Puffer). */
 typedef struct {
