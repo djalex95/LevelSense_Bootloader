@@ -20,11 +20,18 @@ bevor sie neu startet – es übersteht einen Warmstart (RAM bleibt erhalten).
 ## 2. Ablauf beim Start (Bootloader)
 
 1. Prüfen, ob im RAM das **Enter-DFU-Magic** steht (App hat Update angefordert).
-2. Prüfen, ob eine **gültige App** vorliegt: Metadaten-Marker gesetzt **und**
+2. **Taster (PB8) beim Power-On gedrückt?** Aktiv-low, mit kurzer Entprellung –
+   dient als erzwungener DFU-Start (Firmware-Recovery).
+3. Prüfen, ob eine **gültige App** vorliegt: Metadaten-Marker gesetzt **und**
    CRC32 über die gespeicherte App-Größe stimmt.
-3. Entscheidung:
-   - Update angefordert **oder** keine gültige App → **DFU-Modus** (empfangen).
+4. Entscheidung:
+   - Update angefordert **oder** Taster gedrückt **oder** keine gültige App →
+     **DFU-Modus** (empfangen).
    - Sonst → **VTOR auf `0x08008000` setzen und in die App springen**.
+
+Der erzwungene DFU-Start ist nicht-destruktiv: Er betritt nur den DFU-Modus; die
+App wird erst bei einem tatsächlichen `DFUS` gelöscht. Ohne Update bootet beim
+nächsten Start (ohne Taster) die vorhandene App normal.
 
 Weil der Gültigkeits-Marker **erst am Schluss** eines erfolgreichen Updates
 gesetzt wird, führt jeder Abbruch (Stromausfall, Verbindungsverlust, CRC-Fehler)
