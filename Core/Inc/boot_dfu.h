@@ -32,4 +32,9 @@ void dfu_init(const dfu_flash_ops_t *ops);
  * Rückgabe: Länge der Antwort (0 = keine). */
 uint16_t dfu_on_data(const uint8_t *data, uint16_t len, char *resp, uint8_t *do_reset);
 
+/* 1, sobald ein DFUS den App-Bereich gelöscht hat (bleibt bis zum Reset
+ * gesetzt). Solange 0, liegt die alte App noch unversehrt im Flash -
+ * der DFU-Leerlauf-Timeout darf dann gefahrlos zurück in die App booten. */
+uint8_t dfu_flash_touched(void);
+
 #endif /* INC_BOOT_DFU_H_ */

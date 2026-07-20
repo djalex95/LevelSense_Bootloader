@@ -120,6 +120,14 @@ static void jump_to_app(void)
 	uint32_t sp = *(volatile uint32_t *)DFU_APP_ADDR;
 	uint32_t pc = *(volatile uint32_t *)(DFU_APP_ADDR + 4);
 
+	/* Plausibilitaet der Vektortabelle als billige zweite Huerde neben der
+	 * CRC: Stackpointer muss ins RAM zeigen, Reset-Vektor in den App-Flash
+	 * (mit gesetztem Thumb-Bit). Passt etwas nicht, lieber im DFU bleiben,
+	 * als in undefinierten Code zu springen. */
+	if (sp <= 0x20000000UL || sp > (0x20000000UL + 144UL * 1024UL)) return;
+	if (pc < DFU_APP_ADDR || pc >= (DFU_APP_ADDR + DFU_APP_MAX)) return;
+	if ((pc & 1UL) == 0UL) return;   /* Thumb-Bit muss gesetzt sein */
+
 	__disable_irq();
 	HAL_RCC_DeInit();
 	HAL_DeInit();
@@ -163,7 +171,9 @@ int main(void)
 	/* Taster beim Power-On gedrückt -> DFU erzwingen (Firmware-Recovery). */
 	uint8_t force_dfu = button_held();
 
-	if (!dfu_req && !force_dfu && app_valid())
+	uint8_t app_ok = app_valid();
+
+	if (!dfu_req && !force_dfu && app_ok)
 	{
 		jump_to_app();   /* kehrt nicht zurück */
 	}
@@ -177,10 +187,24 @@ int main(void)
 	uint8_t do_reset;
 	last_data_tick = (uint32_t)(-1000);   /* Start: weißes Blinken */
 
+	/* Sicherer Rueckweg aus versehentlichem DFU: War beim Start eine gueltige
+	 * App vorhanden und kommt binnen DFU_IDLE_TIMEOUT_MS kein Update zustande
+	 * (keine Verbindung, App-Bereich noch unversehrt), per Reset zurueck in
+	 * die App booten - der Sensor bleibt nicht bis zum Stromtrennen offline.
+	 * Sobald ein DFUS den Flash geloescht hat, greift der Timeout nicht mehr. */
+	const uint32_t DFU_IDLE_TIMEOUT_MS = 120000UL;
+	uint32_t boot_tick = HAL_GetTick();
+
 	while (1)
 	{
 		BP_Poll();
 		led_update();
+
+		if (app_ok && !bp_connected && !dfu_flash_touched()
+		    && (HAL_GetTick() - boot_tick) >= DFU_IDLE_TIMEOUT_MS)
+		{
+			NVIC_SystemReset();   /* gueltige App wird nach dem Reset gestartet */
+		}
 
 		if (bp_data_ready)
 		{
@@ -324,6 +348,8 @@ static void led_update(void)
 
 void Error_Handler(void)
 {
-	__disable_irq();
-	while (1) { }
+	/* Statt hart haengen: Reset. Tritt ein Init-/Peripheriefehler auf,
+	 * bringt ein Neustart den Bootloader in einen definierten Zustand
+	 * zurueck (und startet bei gueltiger App die App). */
+	NVIC_SystemReset();
 }

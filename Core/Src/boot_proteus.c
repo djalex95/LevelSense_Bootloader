@@ -100,6 +100,15 @@ static void process_byte(uint8_t b)
 
 void BP_Poll(void)
 {
+	/* Fehlerflags quittieren: ein Overrun (ORE) blockiert sonst den weiteren
+	 * Empfang, RXNE wuerde nie mehr gesetzt und der DFU-Empfang haengt. Dank
+	 * RTS/CTS-Flow-Control tritt das kaum auf, das Clearen kostet aber nichts. */
+	if (__HAL_UART_GET_FLAG(bp_uart, UART_FLAG_ORE | UART_FLAG_FE | UART_FLAG_NE | UART_FLAG_PE))
+	{
+		__HAL_UART_CLEAR_FLAG(bp_uart,
+			UART_CLEAR_OREF | UART_CLEAR_FEF | UART_CLEAR_NEF | UART_CLEAR_PEF);
+	}
+
 	while (__HAL_UART_GET_FLAG(bp_uart, UART_FLAG_RXNE))
 	{
 		uint8_t b = (uint8_t)(bp_uart->Instance->RDR & 0xFF);

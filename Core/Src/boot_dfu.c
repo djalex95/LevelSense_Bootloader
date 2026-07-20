@@ -16,6 +16,7 @@ static uint32_t flash_pos;  /* bisher in den Flash geschriebene Byte (Vielfaches
 static uint8_t  stage[8];   /* Sammelpuffer bis Doppelwort voll */
 static uint8_t  stage_n;
 static uint8_t  active;     /* 1 = Übertragung läuft            */
+static uint8_t  touched;    /* 1 = App-Bereich wurde geloescht (DFUS)  */
 
 static uint32_t rd32(const uint8_t *p)
 {
@@ -29,6 +30,12 @@ void dfu_init(const dfu_flash_ops_t *ops)
 	exp_size = exp_crc = recv = flash_pos = 0;
 	stage_n = 0;
 	active = 0;
+	touched = 0;
+}
+
+uint8_t dfu_flash_touched(void)
+{
+	return touched;
 }
 
 /* Bytes in den Flash strömen: sammelt zu 8-Byte-Doppelworten und schreibt. */
@@ -97,6 +104,7 @@ uint16_t dfu_on_data(const uint8_t *d, uint16_t len, char *resp, uint8_t *do_res
 			}
 			else
 			{
+				touched = 1;   /* App-Bereich ist geloescht */
 				exp_size = size;
 				exp_crc = crc;
 				recv = 0;

@@ -12,12 +12,15 @@
 
 void NMI_Handler(void)
 {
-	while (1) { }
+	/* Nicht ewig haengen bleiben - ausgerechnet der Bootloader muss immer
+	 * wieder anlaufen. Reset: bei gueltiger App startet die App, sonst
+	 * landet man erneut sauber im DFU. */
+	NVIC_SystemReset();
 }
 
 void HardFault_Handler(void)
 {
-	while (1) { }
+	NVIC_SystemReset();
 }
 
 void SVC_Handler(void)
